@@ -1,0 +1,6 @@
+<manifest xmlns="http://ns.adobe.com/f4m/1.0">
+  <id>Multicast_Peer_to_Peer</id>
+  <streamType>live</streamType>
+  <duration>0</duration>
+  <media url="rtmfp://63.221.136.86/multicast" groupspec="G:01012105a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3010c160e666d732e6d756c7469636173742e6578616d706c6500" multicastStreamName="123"/>
+</manifest>
