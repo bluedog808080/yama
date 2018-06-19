@@ -1,0 +1,250 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>HTML5 MediaElement</title>	
+	<script src="./build/jquery.js"></script>		
+	<script src="./build/mediaelement.js"></script>
+	<script src="config.js"></script>	
+
+	<style>
+
+		body
+		{
+			background-color: #cecece;
+		}
+
+		/*min-height: div 
+		{
+			padding : 2px;
+		}*/
+
+		.me-plugin 
+		{
+			margin :5px;
+			padding : 10px;
+			padding-bottom: 4px;
+			float  : left; 
+			background-color: black
+		}
+
+		.me-plugin 
+		{
+			/*border : 2px solid black ;*/
+		}
+
+		.div-common 
+		{
+			/*border : 10px solid black ;*/
+		}
+
+		.div-mark 
+		{
+			background-color: yellow;
+			/*border : 10px solid yellow ;*/
+		}
+
+		.div-warn 
+		{
+			background-color: red;
+			/*border : 10px solid red ;*/
+		}
+
+	</style>
+</head>
+<body>
+
+
+<div class="video-list" style="float:left;">
+</div>
+
+<script>
+	run_index  = 0 ;
+	past_index = -1 ;
+	recounter  = 0 ;
+
+	memo_list  = [] ;
+
+	console.log("video count = " + video_list.length) ;
+
+	for(var i = 0 ; i < video_list.length ; i++)
+	{
+		$(".video-list").append("<video width='"+ video_width + "' height='" + video_height + "' id='svideo_" + i + "' src='" + video_list[i] + "' type='video/rtmp' controls='false'></video>") ;
+
+		var vname = video_list[i].split("/")[video_list[i].split("/").length-1] ;
+
+		memo_list[i] = {"eid" : "svideo_" + i , "vname" : vname , "status" : "cr" , "trycount" : 0 , "tid" : 0 , "target" : null , "dur" : 0} ;
+	
+		MediaElement('svideo_' + i , {success: function(me) {
+
+			var vindex = me.id.split("_")[2] ;
+
+			memo_list[vindex].target = me ;
+
+			if(vindex == 0)
+			{
+				connectVideo() ; // first start
+			}
+
+			me.addEventListener('timeupdate', function() {
+				if(me.currentTime > 0)
+				{
+					if(memo_list[vindex].dur <= 0)
+					{
+//						console.log("[diff] past.time<=0 , curr.time=" + me.currentTime) ;
+
+						memo_list[vindex].dur = me.currentTime ;
+
+/*
+						console.log("stop " + memo_list[vindex].vname);
+
+						me.pause() ;
+
+						autoRunIndex() ;
+
+						connectVideo() ;
+*/						
+					}
+					else
+					{
+						var diff = memo_list[vindex].dur - me.currentTime ;
+
+						diff = Math.abs(diff) ;
+
+//						console.log("[diff] " + memo_list[vindex].vname + "=" + diff + " || past = " + memo_list[vindex].dur + " , curr = " + me.currentTime) ;
+						console.log("[diff] " + memo_list[vindex].vname + "curr.time = " + me.currentTime.toFixed(2) + " , past.time = " + memo_list[vindex].dur.toFixed(2) + " , diff = " + diff.toFixed(2) ) ;
+
+						if(diff >= 5 && diff <= 10)
+						{
+							console.log("[diff] time left 5s. passed.") ;
+
+							memo_list[vindex].dur = -1 ;
+
+							memo_list[vindex].trycount = 0 ;
+
+							me.pause() ;
+							//me.stop() ;
+
+							autoRunIndex() ;
+
+							connectVideo() ;
+						}
+						else
+						{
+							if(diff >= 10) // burn , update timme then rediff
+							{
+								memo_list[vindex].dur = me.currentTime ;
+							}
+						}
+					}
+				}
+			});
+		}});
+	}
+
+	function autoRunIndex() 
+	{
+		run_index++ ;
+
+		if(run_index > memo_list.length - 1)
+		{
+			run_index = 0 ;
+		}
+	}
+
+	function connectVideo()
+	{
+		console.log("====================================================")
+		console.log("connect video => " + memo_list[run_index].vname) ;
+		console.log("src           => " + video_list[run_index]) ;
+		console.log("====================================================")
+		
+		$(".me-plugin").removeClass("div-mark") ;
+		
+		$("#me_flash_" + run_index + "_container").removeClass("div-warn") ;
+		$("#me_flash_" + run_index + "_container").addClass("div-mark") ;
+
+		memo_list[run_index].target.setSrc(video_list[run_index]);
+        memo_list[run_index].target.load();
+        memo_list[run_index].target.play();
+	}
+
+	setInterval(function(){
+
+		if(past_index == -1)
+		{
+			past_index = run_index ;
+			
+			recounter++ ;
+
+			console.log(memo_list[past_index].vname + "'s recounter start.") ;
+		}
+		else 
+		{
+			if(past_index == run_index)
+			{
+				recounter++ ;
+
+				console.log(memo_list[past_index].vname + "'s recounter add. [" + recounter + "]") ;
+			}
+			else
+			{
+				console.log("recounter reset " + memo_list[past_index].vname + "'s recounter [" + recounter + "]") ;
+
+				past_index = run_index ;
+
+				recounter = 0 ;
+			}
+		}
+		
+		if(recounter == vtimeout)
+		{
+			console.log(memo_list[past_index].vname + " is too late. jump and reset counter.") ;
+
+			memo_list[past_index].dur = 0 ;
+
+			memo_list[past_index].target.pause() ;
+			//memo_list[past_index].target.stop() ;
+
+			recounter = 0 ;
+
+			notifyMe("提示訊息" , video_list[past_index]) ;
+
+			autoRunIndex() ;
+
+			connectVideo() ;
+		}
+
+	} , 1000);
+
+
+
+	function notifyMe(title , content) 
+    {
+    	$("#me_flash_" + run_index + "_container").addClass("div-warn") ;
+
+		var options = {"body" : content} ;
+		
+    	  if (!("Notification" in window)) {
+    	    alert("This browser does not support desktop notification");
+    	  }
+
+    	  else if (Notification.permission === "granted") {
+    	    // If it's okay let's create a notification
+    	    var notification = new Notification(title , options);
+    	  }
+
+    	  else if (Notification.permission !== 'denied') {
+    	    Notification.requestPermission(function (permission) {
+    	      // If the user accepts, let's create a notification
+    	      if (permission === "granted") {
+    	        var notification = new Notification(title , options);
+    	      }
+    	    });
+    	  }
+    }
+
+</script>
+
+</body>
+</html>
